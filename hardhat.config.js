@@ -33,5 +33,15 @@ module.exports = {
             31337: 2
         }
     },
-    solidity: "0.8.24",
+    solidity: {
+    compilers:
+    [
+    {
+        version:"0.8.24",
+    },
+    {
+        version:"0.8.0"
+    }
+    ]
+    }
 };
