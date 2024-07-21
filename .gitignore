@@ -129,6 +129,8 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+yarn.lock
 .idea
 artifacts
 cache
+deployments

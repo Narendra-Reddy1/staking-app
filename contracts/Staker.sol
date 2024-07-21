@@ -3,25 +3,17 @@ pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
+import {console} from "hardhat/console.sol";
 
-/*
-statking✅
-staker states..
-check timer
-disperse funds
-transfer funds
-
-*/
 contract Staker is AutomationCompatible {
     using SafeMath for uint256;
-
-    enum Staker_State{
-        Live,//Currently running
-        Processing,//Staking duration complete transferring funds
-        Closed //Staking is closed and ready to run new Staking Round.
+    enum Staker_State {
+        Closed, //Staking is closed and ready to run new Staking Round.
+        Live, //Currently running
+        Processing //Staking duration complete transferring funds
     }
     mapping(address => uint256) private s_funders;
-    address []s_fundersArray;
+    address[] s_fundersArray;
     mapping(address => bool) private s_uiniqueFundersMap;
     bool private s_canWithdrawFunds;
     uint256 private s_stakingDuration;
@@ -30,7 +22,6 @@ contract Staker is AutomationCompatible {
     address private s_beneficiaryContract;
     address private s_owner;
     Staker_State private s_stakerState;
-
     bool private isUpkeepValid;
 
     error Staker_InvalidPerformUpKeep();
@@ -41,16 +32,32 @@ contract Staker is AutomationCompatible {
     event Staker_DisperseFundsSuccess();
     event Staker_BenefeciaryFundTransferSuccess();
 
-    modifier onlyOwner(){
+    modifier onlyOwner() {
         require(msg.sender == s_owner, "Only owner is authorized");
         _;
     }
 
-    function launchStaking(address beneficiaryAddress, uint256 stakingDuration) onlyOwner external {
-        if (s_stakerState != Staker_State.Closed) revert("Staker state is not closed");
-        if (stakingDuration > block.timestamp && beneficiaryAddress != address(0)) revert("Invalid inputs");
+    constructor() {
+        s_owner = msg.sender;
+        s_stakerState = Staker_State.Closed;
+    }
+
+    function launchStaking(
+        address beneficiaryAddress,
+        uint256 stakingDuration,
+        uint256 stakeThreshold
+    ) external onlyOwner {
+        if (s_stakerState != Staker_State.Closed)
+            revert("Staker state is not closed");
+        if (
+            stakingDuration <= block.timestamp ||
+            beneficiaryAddress == address(0) ||
+            stakeThreshold <= 0
+        ) revert("Invalid inputs");
         s_beneficiaryContract = beneficiaryAddress;
         s_stakingDuration = stakingDuration;
+        s_stakingThreshold = stakeThreshold;
+        s_stakerState = Staker_State.Live;
         emit Staker_LaunchSuccess(beneficiaryAddress, stakingDuration);
     }
 
@@ -60,7 +67,8 @@ contract Staker is AutomationCompatible {
         (bool success, uint256 updatedBalance) = balance.tryAdd(msg.value);
         if (success) {
             s_funders[msg.sender] = updatedBalance;
-            if (!s_uiniqueFundersMap[msg.sender]) s_fundersArray.push(msg.sender);
+            if (!s_uiniqueFundersMap[msg.sender])
+                s_fundersArray.push(msg.sender);
             emit StakeSuccess(msg.sender, updatedBalance);
         }
         return success;
@@ -69,23 +77,23 @@ contract Staker is AutomationCompatible {
     function checkUpkeep(
         bytes calldata
     ) external returns (bool upkeepNeeded, bytes memory) {
-        if (block.timestamp > s_stakingDuration &&
-            s_stakerState == Staker_State.Live)
-        {
+        if (
+            block.timestamp > s_stakingDuration &&
+            s_stakerState == Staker_State.Live
+        ) {
             s_stakerState = Staker_State.Processing;
             isUpkeepValid = true;
             upkeepNeeded = isUpkeepValid;
         }
     }
 
-    function performUpkeep(bytes calldata performData) external {
+    function performUpkeep(bytes calldata) external {
         if (!isUpkeepValid) {
             revert Staker_InvalidPerformUpKeep();
         }
         if (address(this).balance >= s_stakingThreshold) {
             transferFundsToTargetContract();
-        } else
-        {
+        } else {
             disperseFundsToFunders();
         }
     }
@@ -95,44 +103,69 @@ contract Staker is AutomationCompatible {
         for (uint256 i = 0; i < length; i++) {
             uint256 amount = s_funders[s_fundersArray[i]];
             delete s_funders[s_fundersArray[i]];
-            (bool success,) = payable(s_fundersArray[i]).call{value: amount}("");
-            if (!success) revert Staker_FundTransferFailed(s_fundersArray[i], amount);
+            (bool success, ) = payable(s_fundersArray[i]).call{value: amount}(
+                ""
+            );
+            if (!success)
+                revert Staker_FundTransferFailed(s_fundersArray[i], amount);
         }
         delete s_fundersArray;
+        delete s_stakingDuration;
         emit Staker_DisperseFundsSuccess();
     }
 
     function transferFundsToTargetContract() internal {
+        (bool success, ) = payable(s_beneficiaryContract).call{
+            value: address(this).balance
+        }("");
+        if (!success)
+            revert Staker_FundTransferFailed(
+                s_beneficiaryContract,
+                address(this).balance
+            );
+
         uint256 length = s_fundersArray.length;
         for (uint256 i = 0; i < length; i++) {
             delete s_funders[s_fundersArray[i]];
         }
         delete s_fundersArray;
+        delete s_stakingDuration;
         emit Staker_BenefeciaryFundTransferSuccess();
-        (bool success,) = payable(s_beneficiaryContract).call{value: address(this).balance}("");
-        if (!success) revert Staker_FundTransferFailed(s_beneficiaryContract, address(this).balance);
     }
 
-//    function contains(address[] memory arr, address item) private view returns (bool) {
-//        uint256 length = arr.length;
-//        for (uint256 i = 0; i < length; i++) {
-//            if (arr[i] == item) return true;
-//        }
-//        return false;
-//
-//    }
+    //    function contains(address[] memory arr, address item) private view returns (bool) {
+    //        uint256 length = arr.length;
+    //        for (uint256 i = 0; i < length; i++) {
+    //            if (arr[i] == item) return true;
+    //        }
+    //        return false;
+    //
+    //    }
 
-    function getAmountFundedByFunderAddress(address key) public view returns (uint256) {
+    function getAmountFundedByFunderAddress(
+        address key
+    ) external view returns (uint256) {
         return s_funders[key];
     }
 
-    function getBeneficiaryContract() external view returns (address)  {
+    function getStakingDuration() external view returns (uint256) {
+        return s_stakingDuration;
+    }
+
+    function getElapsedStakingTime() external view returns (uint256) {
+        return
+            s_stakingDuration > block.timestamp
+                ? (s_stakingDuration - block.timestamp)
+                : uint256(0);
+    }
+
+    function getBeneficiaryContract() external view returns (address) {
         return s_beneficiaryContract;
     }
+
+    receive() external payable {}
 
     fallback() external payable {
         stake();
     }
-
-
 }

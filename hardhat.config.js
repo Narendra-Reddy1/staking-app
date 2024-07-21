@@ -1,12 +1,13 @@
 require("dotenv").config();
 require("@nomiclabs/hardhat-ethers")
 require("hardhat-deploy");
-require("mocha")
 require("hardhat-deploy-ethers")
 require("@nomicfoundation/hardhat-chai-matchers")
+require("@nomicfoundation/hardhat-verify")
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
-
+const COIN_MARKET_CAP_API_KEY = process.env.COIN_MARKET_CAP_API_KEY;
+const ETHER_SCAN_API_KEY = process.env.ETHER_SCAN_API_KEY;
 module.exports = {
     defaultNetwork: "hardhat",
     networks: {
@@ -15,10 +16,22 @@ module.exports = {
             url: "http://127.0.0.1:8545/",
         },
         sepolia: {
-            chainId: 1115511,
+            chainId: 11155111,
             url: SEPOLIA_RPC_URL,
-            accounts: [PRIVATE_KEY]
+            accounts: [PRIVATE_KEY],
         }
+    },
+    etherscan: {
+        apiKey: {
+            sepolia: ETHER_SCAN_API_KEY
+        }
+    },
+    gasreporter: {
+        enabled: true,
+        noColors: true,
+        currency: "USD",
+        coinmarketcap: COIN_MARKET_CAP_API_KEY,
+        outputFile: "gas-reporter.txt"
 
     },
     namedAccounts: {
@@ -31,17 +44,20 @@ module.exports = {
         },
         helper02: {
             31337: 2
+        },
+        helper03: {
+            31337: 3
         }
     },
     solidity: {
-    compilers:
-    [
-    {
-        version:"0.8.24",
-    },
-    {
-        version:"0.8.0"
-    }
-    ]
+        compilers:
+            [
+                {
+                    version: "0.8.24",
+                },
+                {
+                    version: "0.8.0"
+                }
+            ]
     }
 };
