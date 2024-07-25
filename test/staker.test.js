@@ -4,13 +4,18 @@ const { deployments, ethers, getNamedAccounts, network } = require("hardhat");
 
 let stakerContract;
 let beneficiaryContract;
-let deployer;
-let stakingDurationTimestamp = "1721561114";
-let minStakeAmount = ethers.parseEther("10");
+let deployer, helper01, helper02, helper03;
+//let stakingDurationTimestamp = Math.floor((Date.now()) + 864000);//30mintues from current time
+let stakingDurationTimestamp = "1753419467000"
+console.log("STAKUGGGG ", stakingDurationTimestamp)
+let stakeAmountThreshold = ethers.parseEther("1000");
 before(async () => {
     console.log("Initial...");
-    deployer = (await getNamedAccounts()).deployer;
-    const { helper03 } = (await getNamedAccounts());
+    const accounts = (await getNamedAccounts());
+    deployer = accounts.deployer;
+    helper01 = accounts.helper01;
+    helper02 = accounts.helper02;
+    helper03 = accounts.helper03;
     const p = await deployments.fixture(["all"]);
     const signer = (await ethers.getSigner(deployer));
     stakerContract = (await ethers.getContract("Staker")).connect(signer)
@@ -36,14 +41,23 @@ describe("Launching Staker", function () {
         //console.log(_beneficiaryContract)
     })
     it("should initialize values correctly", async () => {
-        await expect(_stakerContract.launchStaking(_beneficiaryContract.target, "1721561114", minStakeAmount))
+        await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold))
             .to.be.emit(_stakerContract, "Staker_LaunchSuccess");
+        const benContractAddress = await _stakerContract.getBeneficiaryContract();
+        expect(benContractAddress.toString()).to.be.equal(_beneficiaryContract.target.toString());
     })
     it("should not launch another staking round if already running", async () => {
-        await _stakerContract.launchStaking(_beneficiaryContract.target, "1721561114", minStakeAmount);
-        await expect(_stakerContract.launchStaking(_beneficiaryContract.target, "1721561114", minStakeAmount))
+        await _stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold);
+        await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold))
             .to.be.revertedWith("Staker state is not closed");
     })
+    it("Should revert it stake threshold is 0 or negative value", async () => {
+        await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, "0")).to.be.revertedWith("Invalid inputs")
+    })
+    it("should not able to launch other than Owner(deployer)", async () => {
+        const newStaker = await _stakerContract.connect(await ethers.getSigner(helper02));
+        await expect(newStaker.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold)).to.be.revertedWith("Only owner is authorized");
+    });
 })
 
 
@@ -58,10 +72,10 @@ describe("Staking", function () {
     let stakeAmount = 100;
     before(async () => {
         console.log("Staking...");
-        await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, minStakeAmount);
+        await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold);
     })
     it("Should able to stake after launch", async () => {
-        const { helper01, helper02, helper03 } = await getNamedAccounts();
+        //const { helper01, helper02, helper03 } = await getNamedAccounts();
         const h01ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper01));
         const h02ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper02));
         const h03ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper03));
@@ -82,10 +96,10 @@ describe("Chainlink", function () {
     it("should not able to stake when processing", async () => {
 
         //Launching staking
-        await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, minStakeAmount);
-        let stakeAmount = 100;
+        await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold);
+        let stakeAmount = 10;
         //staking
-        const { helper01, helper02, helper03 } = await getNamedAccounts();
+        //const { helper01, helper02, helper03 } = await getNamedAccounts();
         const h01ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper01));
         const h02ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper02));
         const h03ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper03));
@@ -113,9 +127,40 @@ describe("Chainlink", function () {
         console.log("Beneficiary BALANCE::: ", beneficiaryBalance);
         console.log("BALANCE after::: ", balance);
         await expect(stakerContract.stake({ value: ethers.parseEther("100") })).to.be.revertedWith("Staking is not Live");
+    })
+    it("Should disperse funds if minStake amount not met", async () => {
+        //Launching staking
+        await stakerContract.provideGas({ value: ethers.parseEther("10") });
+        await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold);
+        let stakeAmount = 10;
+
+
+        const h01ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper01));
+        const h02ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper02));
+        const h03ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper03));
+
+        console.log("balance ", await ethers.provider.getBalance(helper01))
+
+        await h01ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) });
+        await h02ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) });
+        await h03ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) });
+
+        console.log("balance ", await ethers.provider.getBalance(helper01))
+        await network.provider.send("evm_increaseTime", [(stakingDurationTimestamp + 1).toString()]);
+        await network.provider.send("evm_mine", []);
+
+        await stakerContract.checkUpkeep(ethers.ZeroHash);
+        //await expect(stakerContract.performUpkeep(ethers.ZeroHash)).to.be.revertedWithCustomError(stakerContract, "Staker_InvalidPerformUpKeep");
+        await expect(stakerContract.performUpkeep(ethers.ZeroHash)).to.be.emit(stakerContract, "Staker_DisperseFundsSuccess");
+
+        console.log("balance ", await ethers.provider.getBalance(helper01))
+
+        //await expect(stakerContract.performUpkeep(ethers.ZeroHash)).to.be.emit(stakerContract, "Staker_DisperseFundsSuccess")
+
+
+        //expect(contractBalance).to.be.equal("0")
 
 
     })
-
 
 })

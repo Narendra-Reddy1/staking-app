@@ -1,9 +1,52 @@
 {
   "_format": "hh-sol-cache-2",
   "files": {
+    "/home/achiever/VSCode/speedrun-ethereum/staking-app/contracts/BeneficiaryContract.sol": {
+      "lastModificationDate": 1721473610484,
+      "contentHash": "f7cd581e10293b66fadf7705defe9c1c",
+      "sourceName": "contracts/BeneficiaryContract.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "0.8.24"
+      ],
+      "artifacts": [
+        "BeneficiaryContract"
+      ]
+    },
     "/home/achiever/VSCode/speedrun-ethereum/staking-app/contracts/Staker.sol": {
-      "lastModificationDate": 1721506380818,
-      "contentHash": "efa0139a92d125ab15886afdafbce366",
+      "lastModificationDate": 1721906875743,
+      "contentHash": "35e83a1c84f436aa54c54ee7d64b1a22",
       "sourceName": "contracts/Staker.sol",
       "solcConfig": {
         "version": "0.8.24",
@@ -46,6 +89,49 @@
       ],
       "artifacts": [
         "Staker"
+      ]
+    },
+    "/home/achiever/VSCode/speedrun-ethereum/staking-app/node_modules/hardhat/console.sol": {
+      "lastModificationDate": 1721320083252,
+      "contentHash": "896f68942c3a20e9ae3c3c5bfd3add54",
+      "sourceName": "hardhat/console.sol",
+      "solcConfig": {
+        "version": "0.8.24",
+        "settings": {
+          "evmVersion": "paris",
+          "optimizer": {
+            "enabled": false,
+            "runs": 200
+          },
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata",
+                "devdoc",
+                "userdoc",
+                "storageLayout",
+                "evm.gasEstimates"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          },
+          "metadata": {
+            "useLiteralContent": true
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        ">=0.4.22 <0.9.0"
+      ],
+      "artifacts": [
+        "console"
       ]
     },
     "/home/achiever/VSCode/speedrun-ethereum/staking-app/node_modules/@openzeppelin/contracts/utils/math/SafeMath.sol": {
@@ -221,92 +307,6 @@
       ],
       "artifacts": [
         "AutomationCompatibleInterface"
-      ]
-    },
-    "/home/achiever/VSCode/speedrun-ethereum/staking-app/contracts/BeneficiaryContract.sol": {
-      "lastModificationDate": 1721473610484,
-      "contentHash": "f7cd581e10293b66fadf7705defe9c1c",
-      "sourceName": "contracts/BeneficiaryContract.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "evmVersion": "paris",
-          "optimizer": {
-            "enabled": false,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "0.8.24"
-      ],
-      "artifacts": [
-        "BeneficiaryContract"
-      ]
-    },
-    "/home/achiever/VSCode/speedrun-ethereum/staking-app/node_modules/hardhat/console.sol": {
-      "lastModificationDate": 1721320083252,
-      "contentHash": "896f68942c3a20e9ae3c3c5bfd3add54",
-      "sourceName": "hardhat/console.sol",
-      "solcConfig": {
-        "version": "0.8.24",
-        "settings": {
-          "evmVersion": "paris",
-          "optimizer": {
-            "enabled": false,
-            "runs": 200
-          },
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata",
-                "devdoc",
-                "userdoc",
-                "storageLayout",
-                "evm.gasEstimates"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          },
-          "metadata": {
-            "useLiteralContent": true
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        ">=0.4.22 <0.9.0"
-      ],
-      "artifacts": [
-        "console"
       ]
     }
   }

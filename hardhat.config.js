@@ -4,7 +4,9 @@ require("hardhat-deploy");
 require("hardhat-deploy-ethers")
 require("@nomicfoundation/hardhat-chai-matchers")
 require("@nomicfoundation/hardhat-verify")
+//require("hardhat-gas-reporter")
 const PRIVATE_KEY = process.env.PRIVATE_KEY;
+const PRIVATE_KEY_2 = process.env.PRIVATE_KEY_2;
 const SEPOLIA_RPC_URL = process.env.SEPOLIA_RPC_URL;
 const COIN_MARKET_CAP_API_KEY = process.env.COIN_MARKET_CAP_API_KEY;
 const ETHER_SCAN_API_KEY = process.env.ETHER_SCAN_API_KEY;
@@ -18,7 +20,7 @@ module.exports = {
         sepolia: {
             chainId: 11155111,
             url: SEPOLIA_RPC_URL,
-            accounts: [PRIVATE_KEY],
+            accounts: [PRIVATE_KEY, PRIVATE_KEY_2],
         }
     },
     etherscan: {
@@ -27,7 +29,7 @@ module.exports = {
         }
     },
     gasreporter: {
-        enabled: true,
+        enabled: false,
         noColors: true,
         currency: "USD",
         coinmarketcap: COIN_MARKET_CAP_API_KEY,

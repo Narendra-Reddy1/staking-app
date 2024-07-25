@@ -9,7 +9,8 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     const stakerContract = await deploy("Staker", {
         from: deployer,
         log: true,
-        args: []
+        args: [],
+        waitConfirmations: 0
     });
     if (!developmentChains.includes(network.config.chainId))
         await verify(stakerContract.address, [])
