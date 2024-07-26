@@ -3,7 +3,7 @@ pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {AutomationCompatible} from "@chainlink/contracts/src/v0.8/automation/AutomationCompatible.sol";
-import {console} from "hardhat/console.sol";
+//import {console} from "hardhat/console.sol";
 
 contract Staker is AutomationCompatible {
     using SafeMath for uint256;
@@ -115,17 +115,14 @@ contract Staker is AutomationCompatible {
             revert Staker_InvalidPerformUpKeep();
         }
         if (address(this).balance >= s_stakingThreshold) {
-            console.logString("Transferring...");
             transferFundsToTargetContract();
         } else {
-            console.logString("Dispersing...");
             disperseFundsToFunders();
         }
     }
 
     function disperseFundsToFunders() internal {
         uint256 length = s_fundersArray.length;
-        console.logUint(address(this).balance);
         for (uint256 i = 0; i < length; i++) {
             address funder = s_fundersArray[i];
             uint256 amount = s_funders[funder];
@@ -135,10 +132,6 @@ contract Staker is AutomationCompatible {
             (bool success,) = payable(s_fundersArray[i]).call{value: amount}(
                 ""
             );
-            console.logString("--------------------------------------------");
-            console.logAddress(s_fundersArray[i]);
-            console.logUint(amount);
-            console.logUint(funder.balance);
             if (!success) {
                 // If transfer fails, restore the state
                 s_uiniqueFundersMap[funder] = true;
@@ -148,8 +141,6 @@ contract Staker is AutomationCompatible {
                 // Continue with the next funder
                 continue;
             }
-            console.logUint(funder.balance);
-            console.logString("--------------------------------------------");
             // if (!success)
             //     revert Staker_FundTransferFailed(s_fundersArray[i], amount);
             /* 
@@ -224,6 +215,10 @@ contract Staker is AutomationCompatible {
         return s_stakingDuration;
     }
 
+    function getStakerState() external view returns (uint256 stakerState) {
+        return uint256(s_stakerState);
+    }
+
     function getRemainingStakingTime() external view returns (uint256) {
         return
             s_stakingDuration > block.timestamp
@@ -237,10 +232,6 @@ contract Staker is AutomationCompatible {
 
     function getStakingThreshold() external view returns (uint256) {
         return s_stakingThreshold;
-    }
-
-    function getBal() external view returns (uint256) {
-        return address(this).balance;
     }
 
     receive() external payable {
