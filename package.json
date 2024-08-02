@@ -6,7 +6,10 @@
   "author": "narendra_reddy <narendrareddy54321@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "yarn hardhat node"
+    "compile": "yarn hardhat compile",
+    "chain": "yarn hardhat node",
+    "test": "yarn hardhat test",
+    "deploy": "yarn hardhat deploy"
   },
   "devDependencies": {
     "@chainlink/contracts": "^1.1.1",
