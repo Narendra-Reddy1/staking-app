@@ -45,8 +45,8 @@
       ]
     },
     "/home/achiever/VSCode/speedrun-ethereum/staking-app/contracts/Staker.sol": {
-      "lastModificationDate": 1721908496733,
-      "contentHash": "d8fdf9c70790324f4bf48b2a2ec0d273",
+      "lastModificationDate": 1722589347229,
+      "contentHash": "62a23ee9be3292725d9622f17d72c3df",
       "sourceName": "contracts/Staker.sol",
       "solcConfig": {
         "version": "0.8.24",

@@ -7,9 +7,8 @@ const { describe } = require("node:test");
 let stakerContract;
 let beneficiaryContract;
 let deployer, helper01, helper02, helper03;
-//let stakingDurationTimestamp = Math.floor((Date.now()) + 864000);//30mintues from current time
-let stakingDurationTimestamp = "1753419467000"
-console.log("STAKUGGGG ", stakingDurationTimestamp)
+let stakingDurationTimestamp = Math.floor((Date.now()) + (1000 * 60 * 30));//30mintues from current time
+//let stakingDurationTimestamp = Date.now() + (1000 * 60);
 let stakeAmountThreshold = ethers.parseEther("1000");
 let minStakeAmount = ethers.parseEther("0.01");
 !developmentChains.includes(network.config.chainId) ? describe.skip() : describe("Local Tests", function () {
@@ -28,7 +27,6 @@ let minStakeAmount = ethers.parseEther("0.01");
 
         const beneficiaryBalance1 = await ethers.provider.getBalance(beneficiaryContract.target);
         console.log("Beneficiary BALANCE::: ", beneficiaryBalance1);
-        //console.log(beneficiaryContract)
     })
     describe("Launching Staker", function () {
         let _stakerContract;
@@ -41,31 +39,32 @@ let minStakeAmount = ethers.parseEther("0.01");
             _stakerContract = (await ethers.getContract("Staker")).connect(signer)
 
             _beneficiaryContract = await ethers.getContractAt("BeneficiaryContract", signer);
-            //console.log(_beneficiaryContract)
         })
         it("should initialize values correctly", async () => {
-            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount))
+            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") }))
                 .to.be.emit(_stakerContract, "Staker_LaunchSuccess");
             const benContractAddress = await _stakerContract.getBeneficiaryContract();
             expect(benContractAddress.toString()).to.be.equal(_beneficiaryContract.target.toString());
         })
         it("should not launch another staking round if already running", async () => {
-            await _stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount);
-            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount))
+            await _stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") });
+            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") }))
                 .to.be.revertedWith("Staker state is not closed");
         })
         it("Should revert it stake threshold is 0 or negative value", async () => {
-            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, "0", minStakeAmount)).to.be.reverted;
+            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, "0", minStakeAmount, { value: ethers.parseEther("1") })).to.be.reverted;
         })
         it("should not able to launch other than Owner(deployer)", async () => {
             const newStaker = await _stakerContract.connect(await ethers.getSigner(helper02));
-            await expect(newStaker.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount)).to.be.revertedWith("Only owner is authorized");
+            await expect(newStaker.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") })).to.be.revertedWith("Only owner is authorized");
+        });
+        it("should revert if beneficiary deposit is less than required", async () => {
+            await expect(_stakerContract.launchStaking(_beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther(".2") })).to.be.revertedWith("Staker: Insufficent deposit");
         });
     })
 
 
     describe("Staking Before Launch", function () {
-
         it("Should not able to stake before launch", async () => {
             await expect(stakerContract.stake({ value: ethers.parseEther("10") }))
                 .to.be.revertedWith("Staking is not Live");
@@ -75,20 +74,22 @@ let minStakeAmount = ethers.parseEther("0.01");
         let stakeAmount = 100;
         it("Should able to stake after launch", async () => {
             //const { helper01, helper02, helper03 } = await getNamedAccounts();
-            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount);
+            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") });
             const h01ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper01));
             const h02ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper02));
             const h03ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper03));
 
             await expect(h01ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) }))
-                .to.be.emit(h01ConnetedContract, "StakeSuccess").withArgs(helper01, ethers.parseEther(stakeAmount.toString()));
+                .to.be.emit(h01ConnetedContract, "Staker_StakeSuccess").withArgs(helper01, ethers.parseEther(stakeAmount.toString()));
             await expect(h02ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) }))
-                .to.be.emit(h02ConnetedContract, "StakeSuccess").withArgs(helper02, ethers.parseEther(stakeAmount.toString()));
+                .to.be.emit(h02ConnetedContract, "Staker_StakeSuccess").withArgs(helper02, ethers.parseEther(stakeAmount.toString()));
             await expect(h03ConnetedContract.stake({ value: ethers.parseEther(stakeAmount.toString()) }))
-                .to.be.emit(h03ConnetedContract, "StakeSuccess").withArgs(helper03, ethers.parseEther(stakeAmount.toString()));
+                .to.be.emit(h03ConnetedContract, "Staker_StakeSuccess").withArgs(helper03, ethers.parseEther(stakeAmount.toString()));
 
             const totalFunded = await ethers.provider.getBalance(stakerContract.target);
-            expect(totalFunded.toString(), "Total funded check").to.be.equal(ethers.parseEther((stakeAmount * 3).toString()));
+            const beneficiaryDeposit = await stakerContract.getBeneficiaryDeposit();
+            let totalAmount = (beneficiaryDeposit) + ethers.parseEther((stakeAmount * 3).toString());
+            expect(totalFunded.toString(), "Total funded check").to.be.equal((totalAmount.toString()));
         })
     })
 
@@ -97,7 +98,7 @@ let minStakeAmount = ethers.parseEther("0.01");
         it("should not able to stake when processing", async () => {
 
             //Launching staking
-            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount);
+            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") });
             let stakeAmount = 10;
             //staking
             //const { helper01, helper02, helper03 } = await getNamedAccounts();
@@ -129,7 +130,7 @@ let minStakeAmount = ethers.parseEther("0.01");
         it("Should disperse funds if minStake amount not met", async () => {
             //Launching staking
             await stakerContract.provideGas({ value: ethers.parseEther("10") });
-            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount);
+            await stakerContract.launchStaking(beneficiaryContract.target, stakingDurationTimestamp, stakeAmountThreshold, minStakeAmount, { value: ethers.parseEther("1") });
             let stakeAmount = 10;
 
             const h01ConnetedContract = await stakerContract.connect(await ethers.getSigner(helper01));
